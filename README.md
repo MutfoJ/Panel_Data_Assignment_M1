@@ -9,8 +9,8 @@ The assignment covers pooled OLS, fixed effects, random effects, and robust Haus
 ├── README.md
 ├── M1_Panel_Homework_2025_2026.pdf   # Assignment instructions
 ├── SeatBelts_Description.pdf         # Variable definitions and data documentation
-├── SeatBelts.csv                     # Panel dataset (51 states × 15 years)
 └── Final/
+    ├── SeatBelts.csv                 # Panel dataset (51 states × 15 years)
     ├── panel_homework_final.do       # Stata do-file (replicates all results)
     ├── panel_homework_final.log      # Stata log (full output)
     ├── panel_homework_final.md       # Answer sheet (Markdown source)
@@ -25,12 +25,11 @@ See `SeatBelts_Description.pdf` for full variable definitions.
 
 ## Replication
 
-1. Place `SeatBelts.csv` one directory above `Final/` (or adjust the path in the do-file).
-2. Open Stata and run:
-   ```stata
-   do "Final/panel_homework_final.do"
-   ```
-3. The log file `panel_homework_final.log` will be produced inside `Final/`.
+1. Open `Final/panel_homework_final.do` in Stata.
+2. Change the single `global projdir` path at the top to point to `Final/` on your machine.
+3. Run the entire file. The log will be written to the same folder.
+
+Everything needed (data + code) lives inside `Final/`, so no relative-path issues.
 
 ## Methods
 

@@ -12,25 +12,29 @@
     assignment questions.  All output goes to the log file so the reader can
     cross-check numbers easily.
 
-    - Keep this .do inside the "Final" subfolder.
-    - The data file SeatBelts.csv should sit one level up (i.e. ../).
-    - The log is written to the same Final subfolder.
+    HOW TO RUN
+    ----------
+    1. Change the path in the line below to point to the "Final" folder
+       on YOUR machine (the folder that contains this .do and SeatBelts.csv).
+    2. Run the entire file.  A log will be written to the same folder.
 */
 
 clear all
 set more off
 capture log close _all
 
-* ---------- Set working directory to Final subfolder -------------------------
-cd "C:\Users\vdrag\OneDrive\Escritorio\Panel Data Project\Final"
+* >>>>>>>  CHANGE THIS PATH to your own Final/ folder  <<<<<<<<<<<<<<<<<<<<<<<
+global projdir "C:\Users\vdrag\OneDrive\Escritorio\Panel Data Project\Final"
+* <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-log using "panel_homework_final.log", replace text
+cd "$projdir"
+log using "$projdir/panel_homework_final.log", replace text
 
-* ---------- Path to data -----------------------------------------------------
-local datafile "../SeatBelts.csv"
+* ---------- Path to data (same folder) ---------------------------------------
+local datafile "$projdir/SeatBelts.csv"
 capture confirm file "`datafile'"
 if _rc {
-    di as error "SeatBelts.csv not found -- keep this .do inside Final/."
+    di as error "SeatBelts.csv not found in $projdir — place it next to this .do."
     exit 601
 }
 
