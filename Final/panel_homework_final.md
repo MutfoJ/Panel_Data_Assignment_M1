@@ -162,21 +162,11 @@ $$
 
 ## 4. Is $\bar u_{i.}$ homoskedastic? (2 pts)
 
-From the between equation (2), the error is $\bar u_{i.}=T_i^{-1}\sum_{t\in P_i}u_{it}$. Its variance is
-
-$$
-\text{Var}(\bar u_{i.}\mid X)
-=
-\frac{1}{T_i^2}\sum_{t\in P_i}\text{Var}(u_{it}\mid X)
-=
-\frac{\sigma^2}{T_i}\,.
-$$
-
-When the panel is balanced, $T_i=T$ for all $i$ and this is constant. When the panel is unbalanced, $T_i$ varies across individuals, so the between-equation error is **heteroskedastic**. In the general case, we cannot assume homoskedasticity.
+From eq. (2), $\bar u_{i.}=T_i^{-1}\sum_{t\in P_i}u_{it}$, so $\text{Var}(\bar u_{i.}\mid X)=\sigma^2/T_i$. When $T_i$ varies across individuals the between-equation error is **heteroskedastic**; it is homoskedastic only in the balanced case.
 
 ## 5. Transformation to restore homoskedasticity (1 pt)
 
-Multiplying eq. (2) by $\sqrt{T_i}$ gives the transformed between equation:
+Multiplying eq. (2) by $\sqrt{T_i}$:
 
 $$
 \sqrt{T_i}\,\bar y_{i.}
@@ -187,17 +177,7 @@ $$
 \tag{3}
 $$
 
-The transformed error now has variance
-
-$$
-\text{Var}\!\left(\sqrt{T_i}\,\bar u_{i.}\mid X\right)
-=
-T_i \cdot \frac{\sigma^2}{T_i}
-=
-\sigma^2,
-$$
-
-which is constant across individuals. This is a standard weighted-least-squares correction, weighting each individual by $\sqrt{T_i}$.
+The transformed error has variance $T_i\cdot\sigma^2/T_i=\sigma^2$, which is constant. This is a standard WLS correction weighting each individual by $\sqrt{T_i}$.
 
 ## 6. First between estimator $\hat\beta_{B1}$ (4 pts)
 
@@ -206,25 +186,15 @@ Setting $\alpha_i=\alpha$ for all $i$ in eq. (2) and applying OLS across the $N$
 $$
 \hat\beta_{B1}
 =
-\frac{\displaystyle\sum_{i=1}^{N}(\bar x_{i.}-\bar x_B)(\bar y_{i.}-\bar y_B)}
-{\displaystyle\sum_{i=1}^{N}(\bar x_{i.}-\bar x_B)^2}\,,
-$$
-
-where
-
-$$
-\bar x_B = \frac{1}{N}\sum_{i=1}^{N}\bar x_{i.}\,,
+\frac{\sum_{i=1}^{N}(\bar x_{i.}-\bar x_B)(\bar y_{i.}-\bar y_B)}
+{\sum_{i=1}^{N}(\bar x_{i.}-\bar x_B)^2}\,,
 \qquad
+\bar x_B = \frac{1}{N}\sum_{i=1}^{N}\bar x_{i.}\,,
+\quad
 \bar y_B = \frac{1}{N}\sum_{i=1}^{N}\bar y_{i.}\,.
 $$
 
-The intercept estimator is
-
-$$
-\hat\alpha_{B1} = \bar y_B - \hat\beta_{B1}\,\bar x_B\,.
-$$
-
-Because this OLS ignores the heteroskedasticity identified in Q4, the estimator is unbiased but inefficient when $T_i$ varies.
+The intercept is $\hat\alpha_{B1} = \bar y_B - \hat\beta_{B1}\,\bar x_B$. Because this OLS ignores the heteroskedasticity identified in Q4, the estimator is unbiased but inefficient when $T_i$ varies.
 
 ## 7. Second between estimator $\hat\beta_{B2}$ (4 pts)
 
@@ -233,29 +203,19 @@ Applying OLS to the $\sqrt{T_i}$-transformed model (eq. 3) is algebraically equi
 $$
 \hat\beta_{B2}
 =
-\frac{\displaystyle\sum_{i=1}^{N}T_i(\bar x_{i.}-\bar x_W)(\bar y_{i.}-\bar y_W)}
-{\displaystyle\sum_{i=1}^{N}T_i(\bar x_{i.}-\bar x_W)^2}\,,
-$$
-
-with $T_i$-weighted means
-
-$$
+\frac{\sum_{i=1}^{N}T_i(\bar x_{i.}-\bar x_W)(\bar y_{i.}-\bar y_W)}
+{\sum_{i=1}^{N}T_i(\bar x_{i.}-\bar x_W)^2}\,,
+\qquad
 \bar x_W
 =
-\frac{\sum_{i=1}^{N} T_i\,\bar x_{i.}}{\sum_{i=1}^{N} T_i}\,,
-\qquad
+\frac{\sum_i T_i\,\bar x_{i.}}{\sum_i T_i}\,,
+\quad
 \bar y_W
 =
-\frac{\sum_{i=1}^{N} T_i\,\bar y_{i.}}{\sum_{i=1}^{N} T_i}\,.
+\frac{\sum_i T_i\,\bar y_{i.}}{\sum_i T_i}\,.
 $$
 
-The intercept estimator is
-
-$$
-\hat\alpha_{B2} = \bar y_W - \hat\beta_{B2}\,\bar x_W\,.
-$$
-
-Because $\sum_i T_i\bar x_{i.}$ and $\sum_i T_i\bar y_{i.}$ are just the sums over all observed individual-period observations, $\bar x_W$ and $\bar y_W$ coincide with the global means of the raw data.
+The intercept is $\hat\alpha_{B2} = \bar y_W - \hat\beta_{B2}\,\bar x_W$. Because $\sum_i T_i\bar x_{i.}$ is just the sum over all observed observations, $\bar x_W$ and $\bar y_W$ coincide with the global means of the raw data.
 
 ## 8. Lesson from comparing $B1$ and $B2$ (1 pt)
 
