@@ -1,0 +1,11 @@
+# Ignore everything
+*
+
+# Allow these specific files/folders
+!README.md
+!M1_Panel_Homework_2025_2026.pdf
+!SeatBelts_Description.pdf
+!SeatBelts.csv
+!Final/
+!Final/**
+!.gitignore

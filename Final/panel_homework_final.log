@@ -1,0 +1,895 @@
+-------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\vdrag\OneDrive\Escritorio\Panel Data Project\Final\panel_
+> homework_final.log
+  log type:  text
+ opened on:  11 Mar 2026, 22:43:29
+
+. 
+. * ---------- Path to data ---------------------------------------------------
+> --
+. local datafile "../SeatBelts.csv"
+
+. capture confirm file "`datafile'"
+
+. if _rc {
+.     di as error "SeatBelts.csv not found -- keep this .do inside Final/."
+.     exit 601
+. }
+
+. 
+. * A local that stores all the time-varying controls we use throughout.
+. local xvars sb_useage speed65 speed70 ba08 drinkage21 ln_income age
+
+. 
+. 
+. *============================================================================
+> ==*
+. *  QUESTION 1 — Data description and cleaning                                
+>   *
+. *============================================================================
+> ==*
+. 
+. /*  We import the semicolon-delimited CSV, confirm there are no duplicates,
+>     declare the panel structure, generate log-income, and define the main
+>     estimation sample.  The only cleaning issue is that sb_useage is missing
+>     for 209 state-years, mostly 1983–1989.  All regressions that use
+>     sb_useage are therefore restricted to the 556 complete-case observations.
+> */
+. 
+. import delimited "`datafile'", delimiter(";") varnames(1) clear
+(encoding automatically selected: ISO-8859-1)
+(14 vars, 765 obs)
+
+. 
+. * Verify unique state-year identifiers and set panel
+. isid state year
+
+. xtset fips year
+
+Panel variable: fips (strongly balanced)
+ Time variable: year, 1983 to 1997
+         Delta: 1 unit
+
+. 
+. * Generate log-income (natural functional form for a dollar-denominated varia
+> ble)
+. gen ln_income = ln(income)
+
+. label var ln_income "log(income)"
+
+. 
+. * Mark the estimation sample — keeps rows where nothing relevant is missing
+. gen sample_main = !missing(fatalityrate, sb_useage, speed65, speed70, ///
+>     ba08, drinkage21, ln_income, age)
+
+. label var sample_main "Complete-case sample (556 obs)"
+
+. 
+. di _newline(2) as text "=============================================="
+
+
+==============================================
+
+. di as text "  QUESTION 1: DATA OVERVIEW"
+  QUESTION 1: DATA OVERVIEW
+
+. di as text "=============================================="
+==============================================
+
+. 
+. count
+  765
+
+. di as result "Raw observations: " r(N)
+Raw observations: 765
+
+. 
+. qui count if sample_main
+
+. di as result "Estimation sample: " r(N)
+Estimation sample: 556
+
+. 
+. qui count if missing(sb_useage)
+
+. di as result "Missing sb_useage: " r(N)
+Missing sb_useage: 209
+
+. 
+. tab year if missing(sb_useage)
+
+       year |      Freq.     Percent        Cum.
+------------+-----------------------------------
+       1983 |         48       22.97       22.97
+       1984 |         43       20.57       43.54
+       1985 |         29       13.88       57.42
+       1986 |         23       11.00       68.42
+       1987 |         23       11.00       79.43
+       1988 |         22       10.53       89.95
+       1989 |         21       10.05      100.00
+------------+-----------------------------------
+      Total |        209      100.00
+
+. xtdescribe if sample_main
+
+    fips:  1, 2, ..., 56                                     n =         51
+    year:  1983, 1984, ..., 1997                             T =         15
+           Delta(year) = 1 unit
+           Span(year)  = 15 periods
+           (fips*year uniquely identifies each observation)
+
+Distribution of T_i:   min      5%     25%       50%       75%     95%     max
+                         8       8       8        12        13      14      15
+
+     Freq.  Percent    Cum. |  Pattern
+ ---------------------------+-----------------
+       17     33.33   33.33 |  .......11111111
+       11     21.57   54.90 |  ..1111111111111
+        5      9.80   64.71 |  ...111111111111
+        5      9.80   74.51 |  .11111111111111
+        2      3.92   78.43 |  ......111111111
+        2      3.92   82.35 |  111111111111111
+        1      1.96   84.31 |  .....1111111111
+        1      1.96   86.27 |  ....11.11111111
+        1      1.96   88.24 |  ....11111111111
+        6     11.76  100.00 | (other patterns)
+ ---------------------------+-----------------
+       51    100.00         |  XXXXXXXXXXXXXXX
+
+. summarize fatalityrate sb_useage speed65 speed70 ba08 drinkage21 ///
+>     income ln_income age primary secondary vmt if sample_main
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+fatalityrate |        556    .0197685    .0050295   .0083273   .0356487
+   sb_useage |        556    .5288518    .1701859        .06        .87
+     speed65 |        556    .7913669    .4066974          0          1
+     speed70 |        556    .0971223    .2963909          0          1
+        ba08 |        556    .1348921    .3419159          0          1
+-------------+---------------------------------------------------------
+  drinkage21 |        556    .9622302    .1908107          0          1
+      income |        556    19572.16    4423.434       9696      35863
+   ln_income |        556    9.856594    .2258999   9.179469   10.48746
+         age |        556    35.47417    1.439711   29.58628   39.16958
+     primary |        556    .1456835    .3531063          0          1
+-------------+---------------------------------------------------------
+   secondary |        556    .6384892    .4808707          0          1
+         vmt |        556    46134.23    46554.86       3316     285612
+
+. 
+. /*  We also compute national traffic volumes here because they will be
+>     needed later (Q6, Q10) to convert fatality-rate changes into lives.
+> */
+. preserve
+
+. collapse (sum) us_vmt = vmt, by(year)
+
+. qui summarize us_vmt
+
+. scalar mean_us_vmt = r(mean)                   // average annual US VMT
+
+. qui summarize us_vmt if year == 1997
+
+. scalar us_vmt_1997 = r(mean)                   // 1997 US VMT
+
+. restore
+
+. 
+. qui summarize vmt if sample_main
+
+. scalar mean_state_vmt = r(mean)                // average state-year VMT
+
+. 
+. 
+. *============================================================================
+> ==*
+. *  QUESTION 2 — Pooled OLS                                                   
+>   *
+. *============================================================================
+> ==*
+. 
+. /*  Baseline cross-sectional regression.  We expect the coefficient on
+>     sb_useage to be misleading because of omitted state-level confounders.
+> */
+. 
+. di _newline(2) as text "=============================================="
+
+
+==============================================
+
+. di as text "  QUESTION 2: POOLED OLS"
+  QUESTION 2: POOLED OLS
+
+. di as text "=============================================="
+==============================================
+
+. 
+. reg fatalityrate `xvars' if sample_main, vce(cluster fips)
+
+Linear regression                               Number of obs     =        556
+                                                F(7, 50)          =      25.84
+                                                Prob > F          =     0.0000
+                                                R-squared         =     0.5493
+                                                Root MSE          =      .0034
+
+                                  (Std. err. adjusted for 51 clusters in fips)
+------------------------------------------------------------------------------
+             |               Robust
+fatalityrate | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+   sb_useage |   .0040684   .0023911     1.70   0.095    -.0007343    .0088711
+     speed65 |   .0001479   .0006026     0.25   0.807    -.0010625    .0013583
+     speed70 |   .0024045   .0006951     3.46   0.001     .0010083    .0038007
+        ba08 |  -.0019246   .0007415    -2.60   0.012    -.0034139   -.0004353
+  drinkage21 |   .0000799   .0012722     0.06   0.950    -.0024755    .0026353
+   ln_income |  -.0181444   .0024288    -7.47   0.000    -.0230228    -.013266
+         age |  -7.22e-06   .0004432    -0.02   0.987    -.0008974     .000883
+       _cons |   .1965469    .019814     9.92   0.000     .1567493    .2363446
+------------------------------------------------------------------------------
+
+. estimates store pooled
+
+. 
+. scalar b_pool = _b[sb_useage]
+
+. scalar se_pool = _se[sb_useage]
+
+. 
+. 
+. *============================================================================
+> ==*
+. *  QUESTION 3 — State fixed effects                                          
+>   *
+. *============================================================================
+> ==*
+. 
+. /*  Adding state FE removes all time-invariant unobserved heterogeneity.
+>     Identification now comes from within-state variation over time.
+> */
+. 
+. di _newline(2) as text "=============================================="
+
+
+==============================================
+
+. di as text "  QUESTION 3: STATE FIXED EFFECTS"
+  QUESTION 3: STATE FIXED EFFECTS
+
+. di as text "=============================================="
+==============================================
+
+. 
+. xtreg fatalityrate `xvars' if sample_main, fe vce(cluster fips)
+
+Fixed-effects (within) regression               Number of obs     =        556
+Group variable: fips                            Number of groups  =         51
+
+R-squared:                                      Obs per group:
+     Within  = 0.6868                                         min =          8
+     Between = 0.1957                                         avg =       10.9
+     Overall = 0.3896                                         max =         15
+
+                                                F(7, 50)          =      96.72
+corr(u_i, Xb) = -0.1332                         Prob > F          =     0.0000
+
+                                  (Std. err. adjusted for 51 clusters in fips)
+------------------------------------------------------------------------------
+             |               Robust
+fatalityrate | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+   sb_useage |  -.0057748   .0016693    -3.46   0.001    -.0091276    -.002422
+     speed65 |   -.000425   .0004555    -0.93   0.355    -.0013399    .0004898
+     speed70 |   .0012333   .0003483     3.54   0.001     .0005337    .0019329
+        ba08 |  -.0013774   .0003751    -3.67   0.001    -.0021308   -.0006241
+  drinkage21 |   .0007453   .0007184     1.04   0.305    -.0006976    .0021883
+   ln_income |  -.0135144   .0023849    -5.67   0.000    -.0183047   -.0087241
+         age |   .0009787   .0007461     1.31   0.196    -.0005199    .0024772
+       _cons |   .1209958   .0184234     6.57   0.000     .0839912    .1580004
+-------------+----------------------------------------------------------------
+     sigma_u |  .00383103
+     sigma_e |   .0017871
+         rho |   .8212854   (fraction of variance due to u_i)
+------------------------------------------------------------------------------
+
+. estimates store fe_state
+
+. 
+. scalar b_fe = _b[sb_useage]
+
+. scalar se_fe = _se[sb_useage]
+
+. 
+. 
+. *============================================================================
+> ==*
+. *  QUESTION 4 — State + year fixed effects (two-way FE)                      
+>   *
+. *============================================================================
+> ==*
+. 
+. /*  Year dummies absorb national trends in fatality rates (safer cars,
+>     federal campaigns, etc.).  We test their joint significance.
+> */
+. 
+. di _newline(2) as text "=============================================="
+
+
+==============================================
+
+. di as text "  QUESTION 4: TWO-WAY FIXED EFFECTS"
+  QUESTION 4: TWO-WAY FIXED EFFECTS
+
+. di as text "=============================================="
+==============================================
+
+. 
+. xtreg fatalityrate `xvars' i.year if sample_main, fe vce(cluster fips)
+
+Fixed-effects (within) regression               Number of obs     =        556
+Group variable: fips                            Number of groups  =         51
+
+R-squared:                                      Obs per group:
+     Within  = 0.7506                                         min =          8
+     Between = 0.1139                                         avg =       10.9
+     Overall = 0.0338                                         max =         15
+
+                                                F(21, 50)         =      52.30
+corr(u_i, Xb) = -0.5086                         Prob > F          =     0.0000
+
+                                  (Std. err. adjusted for 51 clusters in fips)
+------------------------------------------------------------------------------
+             |               Robust
+fatalityrate | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+   sb_useage |  -.0037185   .0014515    -2.56   0.013    -.0066339   -.0008032
+     speed65 |  -.0007833   .0005801    -1.35   0.183    -.0019484    .0003818
+     speed70 |   .0008042   .0004572     1.76   0.085    -.0001142    .0017225
+        ba08 |  -.0008225   .0004433    -1.86   0.069    -.0017128    .0000679
+  drinkage21 |  -.0011337   .0006221    -1.82   0.074    -.0023831    .0001158
+   ln_income |   .0062644   .0066991     0.94   0.354    -.0071912      .01972
+         age |    .001318   .0006937     1.90   0.063    -.0000753    .0027114
+             |
+        year |
+       1984  |  -.0004319   .0013781    -0.31   0.755    -.0031998     .002336
+       1985  |  -.0010707   .0017641    -0.61   0.547     -.004614    .0024727
+       1986  |  -.0005777   .0020079    -0.29   0.775    -.0046106    .0034552
+       1987  |  -.0008722   .0024939    -0.35   0.728    -.0058813    .0041368
+       1988  |   -.001885    .002877    -0.66   0.515    -.0076636    .0038936
+       1989  |  -.0041766   .0032564    -1.28   0.206    -.0107173    .0023641
+       1990  |   -.005266   .0035402    -1.49   0.143    -.0123768    .0018448
+       1991  |  -.0066623   .0037593    -1.77   0.082    -.0142131    .0008886
+       1992  |   -.008518   .0039855    -2.14   0.037    -.0165232   -.0005128
+       1993  |    -.00894    .004199    -2.13   0.038    -.0173739   -.0005061
+       1994  |  -.0096297   .0045934    -2.10   0.041    -.0188559   -.0004036
+       1995  |  -.0101124   .0048961    -2.07   0.044    -.0199464   -.0002783
+       1996  |  -.0110766   .0052089    -2.13   0.038     -.021539   -.0006143
+       1997  |  -.0116076   .0055341    -2.10   0.041    -.0227231    -.000492
+             |
+       _cons |   -.077991   .0663611    -1.18   0.245    -.2112811    .0552992
+-------------+----------------------------------------------------------------
+     sigma_u |  .00575372
+     sigma_e |  .00161752
+         rho |  .92675652   (fraction of variance due to u_i)
+------------------------------------------------------------------------------
+
+. estimates store fe_tw
+
+. 
+. scalar b_tw = _b[sb_useage]
+
+. scalar se_tw = _se[sb_useage]
+
+. 
+. testparm i.year
+
+ ( 1)  1984.year = 0
+ ( 2)  1985.year = 0
+ ( 3)  1986.year = 0
+ ( 4)  1987.year = 0
+ ( 5)  1988.year = 0
+ ( 6)  1989.year = 0
+ ( 7)  1990.year = 0
+ ( 8)  1991.year = 0
+ ( 9)  1992.year = 0
+ (10)  1993.year = 0
+ (11)  1994.year = 0
+ (12)  1995.year = 0
+ (13)  1996.year = 0
+ (14)  1997.year = 0
+
+       F( 14,    50) =    9.82
+            Prob > F =    0.0000
+
+. scalar p_yearFE = r(p)
+
+. di as result "Joint test on year dummies: p = " %7.5f p_yearFE
+Joint test on year dummies: p = 0.00000
+
+. 
+. 
+. *============================================================================
+> ==*
+. *  QUESTION 6 — Size of the sb_useage coefficient and lives saved            
+>   *
+. *============================================================================
+> ==*
+. 
+. /*  We translate the two-way FE estimate into an effect size: how many
+>     lives would be saved if seat belt use rose from 52 % to 90 %?
+> */
+. 
+. di _newline(2) as text "=============================================="
+
+
+==============================================
+
+. di as text "  QUESTION 6: EFFECT SIZE"
+  QUESTION 6: EFFECT SIZE
+
+. di as text "=============================================="
+==============================================
+
+. 
+. scalar delta_sb = 0.90 - 0.52
+
+. scalar delta_rate = b_tw * delta_sb
+
+. 
+. qui summarize fatalityrate if sample_main
+
+. scalar mean_fatal = r(mean)
+
+. scalar pct_mean  = -100 * delta_rate / mean_fatal
+
+. 
+. scalar lives_us_mean = -delta_rate * mean_us_vmt
+
+. scalar lives_us_1997 = -delta_rate * us_vmt_1997
+
+. 
+. di as result "Two-way FE coefficient     = " %9.6f b_tw
+Two-way FE coefficient     = -0.003719
+
+. di as result "Delta fatality rate (52→90) = " %9.6f delta_rate
+Delta fatality rate (52→90) = -0.001413
+
+. di as result "% of mean fatality rate     = " %6.2f pct_mean "%"
+% of mean fatality rate     =   7.15%
+
+. di as result "Lives saved/year (avg VMT)  = " %9.1f lives_us_mean
+Lives saved/year (avg VMT)  =    2986.9
+
+. di as result "Lives saved/year (1997 VMT) = " %9.1f lives_us_1997
+Lives saved/year (1997 VMT) =    3617.9
+
+. 
+. 
+. *============================================================================
+> ==*
+. *  QUESTION 7 — Random effects                                               
+>   *
+. *============================================================================
+> ==*
+. 
+. /*  The RE estimator corresponding to Q3 (no year dummies) so that the
+>     FE-vs-RE comparison in Q8 is clean.  Under RE, the state effects are
+>     assumed uncorrelated with all regressors.
+> */
+. 
+. di _newline(2) as text "=============================================="
+
+
+==============================================
+
+. di as text "  QUESTION 7: RANDOM EFFECTS"
+  QUESTION 7: RANDOM EFFECTS
+
+. di as text "=============================================="
+==============================================
+
+. 
+. xtreg fatalityrate `xvars' if sample_main, re vce(cluster fips)
+
+Random-effects GLS regression                   Number of obs     =        556
+Group variable: fips                            Number of groups  =         51
+
+R-squared:                                      Obs per group:
+     Within  = 0.6834                                         min =          8
+     Between = 0.3426                                         avg =       10.9
+     Overall = 0.4805                                         max =         15
+
+                                                Wald chi2(7)      =     585.66
+corr(u_i, X) = 0 (assumed)                      Prob > chi2       =     0.0000
+
+                                  (Std. err. adjusted for 51 clusters in fips)
+------------------------------------------------------------------------------
+             |               Robust
+fatalityrate | Coefficient  std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+   sb_useage |  -.0045039   .0016484    -2.73   0.006    -.0077348   -.0012731
+     speed65 |  -.0003406   .0004482    -0.76   0.447    -.0012191    .0005379
+     speed70 |   .0013351   .0003515     3.80   0.000     .0006463     .002024
+        ba08 |  -.0013643   .0003725    -3.66   0.000    -.0020944   -.0006341
+  drinkage21 |    .000767   .0007065     1.09   0.278    -.0006178    .0021518
+   ln_income |  -.0126154   .0019837    -6.36   0.000    -.0165035   -.0087274
+         age |   .0002318   .0005161     0.45   0.653    -.0007798    .0012435
+       _cons |   .1379473   .0169416     8.14   0.000     .1047424    .1711522
+-------------+----------------------------------------------------------------
+     sigma_u |  .00301581
+     sigma_e |   .0017871
+         rho |  .74011177   (fraction of variance due to u_i)
+------------------------------------------------------------------------------
+
+. estimates store re_state
+
+. 
+. scalar b_re = _b[sb_useage]
+
+. scalar se_re = _se[sb_useage]
+
+. 
+. 
+. *============================================================================
+> ==*
+. *  QUESTION 8 — Robust Hausman test via Mundlak / CRE approach               
+>   *
+. *============================================================================
+> ==*
+. 
+. /*  Because we use cluster-robust SEs, the classical Hausman statistic
+>     is unreliable.  Instead we follow the Mundlak (1978) device: augment
+>     the RE model with the within-state means of the time-varying regressors
+>     and test their joint significance.  The RE model here matches Q7
+>     (no year dummies) to keep the FE-vs-RE comparison internally consistent.
+> */
+. 
+. di _newline(2) as text "=============================================="
+
+
+==============================================
+
+. di as text "  QUESTION 8: ROBUST HAUSMAN / MUNDLAK"
+  QUESTION 8: ROBUST HAUSMAN / MUNDLAK
+
+. di as text "=============================================="
+==============================================
+
+. 
+. preserve
+
+. keep if sample_main
+(209 observations deleted)
+
+. xtset fips year
+
+Panel variable: fips (unbalanced)
+ Time variable: year, 1983 to 1997, but with gaps
+         Delta: 1 unit
+
+. 
+. foreach var in sb_useage speed65 speed70 ba08 drinkage21 ln_income age {
+  2.     bysort fips: egen mean_`var' = mean(`var')
+  3. }
+
+. 
+. xtreg fatalityrate `xvars' ///
+>     mean_sb_useage mean_speed65 mean_speed70 mean_ba08 ///
+>     mean_drinkage21 mean_ln_income mean_age, ///
+>     re vce(cluster fips)
+
+Random-effects GLS regression                   Number of obs     =        556
+Group variable: fips                            Number of groups  =         51
+
+R-squared:                                      Obs per group:
+     Within  = 0.6868                                         min =          8
+     Between = 0.5322                                         avg =       10.9
+     Overall = 0.5908                                         max =         15
+
+                                                Wald chi2(14)     =     790.83
+corr(u_i, X) = 0 (assumed)                      Prob > chi2       =     0.0000
+
+                                  (Std. err. adjusted for 51 clusters in fips)
+------------------------------------------------------------------------------
+             |               Robust
+fatalityrate | Coefficient  std. err.      z    P>|z|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+   sb_useage |  -.0057748     .00168    -3.44   0.001    -.0090676    -.002482
+     speed65 |   -.000425   .0004584    -0.93   0.354    -.0013235    .0004734
+     speed70 |   .0012333   .0003505     3.52   0.000     .0005462    .0019203
+        ba08 |  -.0013774   .0003775    -3.65   0.000    -.0021173   -.0006376
+  drinkage21 |   .0007453    .000723     1.03   0.303    -.0006718    .0021625
+   ln_income |  -.0135144   .0024003    -5.63   0.000    -.0182189   -.0088099
+         age |   .0009787   .0007509     1.30   0.192     -.000493    .0024504
+mean_sb_us~e |     .01617   .0039156     4.13   0.000     .0084955    .0238445
+mean_speed65 |   .0024582    .001624     1.51   0.130    -.0007248    .0056411
+mean_speed70 |   .0020822   .0037629     0.55   0.580    -.0052931    .0094574
+   mean_ba08 |  -.0018742   .0013052    -1.44   0.151    -.0044323    .0006839
+mean_drin~21 |    -.00016    .007085    -0.02   0.982    -.0140465    .0137264
+mean_ln_in~e |  -.0045223   .0039424    -1.15   0.251    -.0122494    .0032047
+    mean_age |  -.0009393   .0005513    -1.70   0.088    -.0020198    .0001412
+       _cons |   .1886086   .0341086     5.53   0.000     .1217569    .2554602
+-------------+----------------------------------------------------------------
+     sigma_u |  .00301581
+     sigma_e |   .0017871
+         rho |  .74011177   (fraction of variance due to u_i)
+------------------------------------------------------------------------------
+
+. estimates store cre
+
+. 
+. test mean_sb_useage mean_speed65 mean_speed70 mean_ba08 ///
+>     mean_drinkage21 mean_ln_income mean_age
+
+ ( 1)  mean_sb_useage = 0
+ ( 2)  mean_speed65 = 0
+ ( 3)  mean_speed70 = 0
+ ( 4)  mean_ba08 = 0
+ ( 5)  mean_drinkage21 = 0
+ ( 6)  mean_ln_income = 0
+ ( 7)  mean_age = 0
+
+           chi2(  7) =   28.42
+         Prob > chi2 =    0.0002
+
+. scalar chi2_mundlak = r(chi2)
+
+. scalar p_mundlak    = r(p)
+
+. 
+. di as result "Mundlak joint chi2 = " %9.4f chi2_mundlak
+Mundlak joint chi2 =   28.4211
+
+. di as result "Mundlak p-value    = " %9.6f p_mundlak
+Mundlak p-value    =  0.000184
+
+. restore
+
+. 
+. 
+. *============================================================================
+> ==*
+. *  QUESTION 9 — Enforcement laws and seat belt usage                         
+>   *
+. *============================================================================
+> ==*
+. 
+. /*  Dependent variable is now sb_useage.  We include primary, secondary,
+>     the same controls, and state + year FE.
+> */
+. 
+. di _newline(2) as text "=============================================="
+
+
+==============================================
+
+. di as text "  QUESTION 9: ENFORCEMENT AND USAGE"
+  QUESTION 9: ENFORCEMENT AND USAGE
+
+. di as text "=============================================="
+==============================================
+
+. 
+. xtreg sb_useage primary secondary speed65 speed70 ba08 drinkage21 ///
+>     ln_income age i.year if sample_main, fe vce(cluster fips)
+
+Fixed-effects (within) regression               Number of obs     =        556
+Group variable: fips                            Number of groups  =         51
+
+R-squared:                                      Obs per group:
+     Within  = 0.8420                                         min =          8
+     Between = 0.4612                                         avg =       10.9
+     Overall = 0.7035                                         max =         15
+
+                                                F(22, 50)         =     503.37
+corr(u_i, Xb) = 0.0527                          Prob > F          =     0.0000
+
+                                  (Std. err. adjusted for 51 clusters in fips)
+------------------------------------------------------------------------------
+             |               Robust
+   sb_useage | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     primary |   .2055969   .0231787     8.87   0.000     .1590411    .2521526
+   secondary |   .1085184   .0134089     8.09   0.000     .0815859    .1354509
+     speed65 |   .0228486   .0205171     1.11   0.271    -.0183612    .0640583
+     speed70 |   .0120425   .0205918     0.58   0.561    -.0293173    .0534022
+        ba08 |   .0037584   .0176175     0.21   0.832    -.0316275    .0391443
+  drinkage21 |   .0107148   .0271708     0.39   0.695    -.0438593    .0652888
+   ln_income |   .0582707   .2564407     0.23   0.821    -.4568056    .5733469
+         age |   .0138235   .0231337     0.60   0.553    -.0326418    .0602889
+             |
+        year |
+       1984  |   .0041177   .0285473     0.14   0.886    -.0532212    .0614567
+       1985  |   .0575168   .0430389     1.34   0.187    -.0289294     .143963
+       1986  |   .1073526   .0551178     1.95   0.057    -.0033547    .2180599
+       1987  |   .1240646   .0771167     1.61   0.114    -.0308288     .278958
+       1988  |   .1390922   .0976105     1.42   0.160    -.0569643    .3351488
+       1989  |   .1702323   .1129775     1.51   0.138    -.0566897    .3971543
+       1990  |   .1897751   .1292799     1.47   0.148    -.0698913    .4494415
+       1991  |   .2370695   .1370662     1.73   0.090    -.0382362    .5123751
+       1992  |   .2633968   .1522133     1.73   0.090    -.0423325    .5691262
+       1993  |   .2824189   .1635142     1.73   0.090    -.0460092    .6108469
+       1994  |   .2983719   .1738351     1.72   0.092    -.0507861    .6475299
+       1995  |   .2959077   .1852818     1.60   0.117    -.0762417     .668057
+       1996  |   .2875636   .1986255     1.45   0.154    -.1113875    .6865147
+       1997  |   .2977347    .210314     1.42   0.163    -.1246935    .7201629
+             |
+       _cons |  -.8930317   2.642247    -0.34   0.737     -6.20014    4.414077
+-------------+----------------------------------------------------------------
+     sigma_u |  .07907719
+     sigma_e |  .05722478
+         rho |  .65630583   (fraction of variance due to u_i)
+------------------------------------------------------------------------------
+
+. estimates store usage_tw
+
+. 
+. scalar b_prim = _b[primary]
+
+. scalar b_sec  = _b[secondary]
+
+. 
+. lincom primary - secondary
+
+ ( 1)  primary - secondary = 0
+
+------------------------------------------------------------------------------
+   sb_useage | Coefficient  Std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+         (1) |   .0970785   .0231444     4.19   0.000     .0505916    .1435653
+------------------------------------------------------------------------------
+
+. scalar delta_prim_sec = b_prim - b_sec
+
+. 
+. di as result "Primary coefficient         = " %9.6f b_prim
+Primary coefficient         =  0.205597
+
+. di as result "Secondary coefficient       = " %9.6f b_sec
+Secondary coefficient       =  0.108518
+
+. di as result "Primary − Secondary         = " %9.6f delta_prim_sec
+Primary − Secondary         =  0.097078
+
+. 
+. 
+. *============================================================================
+> ==*
+. *  QUESTION 10 — New Jersey: lives saved by switching to primary             
+>   *
+. *============================================================================
+> ==*
+. 
+. /*  NJ switched from secondary to primary enforcement in 2000.  We use
+>     the 1997 NJ traffic volume as the nearest available proxy.
+> */
+. 
+. di _newline(2) as text "=============================================="
+
+
+==============================================
+
+. di as text "  QUESTION 10: NEW JERSEY"
+  QUESTION 10: NEW JERSEY
+
+. di as text "=============================================="
+==============================================
+
+. 
+. qui summarize vmt if state == "NJ" & year == 1997
+
+. scalar nj_vmt = r(mean)
+
+. 
+. scalar delta_rate_nj = b_tw * delta_prim_sec
+
+. scalar lives_nj      = -delta_rate_nj * nj_vmt
+
+. 
+. di as result "NJ 1997 VMT (millions)      = " %9.1f nj_vmt
+NJ 1997 VMT (millions)      =   63308.0
+
+. di as result "Change in NJ sb_useage      = " %9.6f delta_prim_sec
+Change in NJ sb_useage      =  0.097078
+
+. di as result "Change in NJ fatality rate  = " %9.6f delta_rate_nj
+Change in NJ fatality rate  = -0.000361
+
+. di as result "Lives saved/year in NJ      = " %9.1f lives_nj
+Lives saved/year in NJ      =      22.9
+
+. 
+. 
+. *============================================================================
+> ==*
+. *  COMPACT SUMMARY                                                           
+>   *
+. *============================================================================
+> ==*
+. 
+. di _newline(2) as text "=============================================="
+
+
+==============================================
+
+. di as text "  SUMMARY: ALL FATALITY MODELS"
+  SUMMARY: ALL FATALITY MODELS
+
+. di as text "=============================================="
+==============================================
+
+. 
+. estimates table pooled fe_state fe_tw re_state, ///
+>     keep(`xvars') b(%9.4f) se(%9.4f) stats(N)
+
+--------------------------------------------------------------
+    Variable |  pooled     fe_state      fe_tw     re_state   
+-------------+------------------------------------------------
+   sb_useage |    0.0041     -0.0058     -0.0037     -0.0045  
+             |    0.0024      0.0017      0.0015      0.0016  
+     speed65 |    0.0001     -0.0004     -0.0008     -0.0003  
+             |    0.0006      0.0005      0.0006      0.0004  
+     speed70 |    0.0024      0.0012      0.0008      0.0013  
+             |    0.0007      0.0003      0.0005      0.0004  
+        ba08 |   -0.0019     -0.0014     -0.0008     -0.0014  
+             |    0.0007      0.0004      0.0004      0.0004  
+  drinkage21 |    0.0001      0.0007     -0.0011      0.0008  
+             |    0.0013      0.0007      0.0006      0.0007  
+   ln_income |   -0.0181     -0.0135      0.0063     -0.0126  
+             |    0.0024      0.0024      0.0067      0.0020  
+         age |   -0.0000      0.0010      0.0013      0.0002  
+             |    0.0004      0.0007      0.0007      0.0005  
+-------------+------------------------------------------------
+           N |       556         556         556         556  
+--------------------------------------------------------------
+                                                  Legend: b/se
+
+. 
+. di _newline as text "=============================================="
+
+==============================================
+
+. di as text "  KEY SCALARS"
+  KEY SCALARS
+
+. di as text "=============================================="
+==============================================
+
+. di as result "Pooled  sb_useage  = " %9.6f b_pool
+Pooled  sb_useage  =  0.004068
+
+. di as result "FE      sb_useage  = " %9.6f b_fe
+FE      sb_useage  = -0.005775
+
+. di as result "TW-FE   sb_useage  = " %9.6f b_tw
+TW-FE   sb_useage  = -0.003719
+
+. di as result "RE      sb_useage  = " %9.6f b_re
+RE      sb_useage  = -0.004504
+
+. di as result "Year FE joint p    = " %9.6f p_yearFE
+Year FE joint p    =  0.000000
+
+. di as result "Mundlak chi2       = " %9.4f chi2_mundlak
+Mundlak chi2       =   28.4211
+
+. di as result "Mundlak p          = " %9.6f p_mundlak
+Mundlak p          =  0.000184
+
+. di as result "Primary coeff      = " %9.6f b_prim
+Primary coeff      =  0.205597
+
+. di as result "Secondary coeff    = " %9.6f b_sec
+Secondary coeff    =  0.108518
+
+. di as result "NJ lives/year      = " %9.1f lives_nj
+NJ lives/year      =      22.9
+
+. 
+. log close
+      name:  <unnamed>
+       log:  C:\Users\vdrag\OneDrive\Escritorio\Panel Data Project\Final\panel_
+> homework_final.log
+  log type:  text
+ closed on:  11 Mar 2026, 22:43:30
+-------------------------------------------------------------------------------
