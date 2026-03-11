@@ -101,7 +101,7 @@ $$
 
 The form of the within estimator does not change. The only difference is that the individual means and within sums are computed over the observed periods $P_i$, so each individual contributes according to the observations actually available. Unbalancedness changes the sample moments, not the logic of the estimator.
 
-We do not need successive observations for each individual either. The within transformation only requires that an individual is observed at least twice ($T_i\ge 2$) so that there is some within-individual variation. Gaps in time are not a problem; the estimator uses deviations from individual means, which do not depend on continuity of the time series.
+We do not need successive observations for each individual either. The within transformation only requires that an individual is observed at least twice ($T_i\ge 2$) **and** that $x_{it}$ varies within that individual, so that the individual contributes non-zero within variation to $W_{XX}$. Gaps in time are not a problem; the estimator uses deviations from individual means, which do not depend on continuity of the time series.
 
 ## 3. Unbiasedness and variance of $\hat\beta_W$ (4 pts)
 
@@ -139,7 +139,7 @@ E(W_{XU}\mid X) = 0
 E(\hat\beta_W\mid X) = \beta.
 $$
 
-**Variance.** Since the $u_{it}$ are conditionally IID with variance $\sigma^2$:
+**Variance.** The $u_{it}$ are conditionally homoskedastic with variance $\sigma^2$ and mutually uncorrelated across all $(i,t)$ pairs (spherical errors). Therefore all cross-terms in the variance vanish and only the diagonal remains:
 
 $$
 \text{Var}(W_{XU}\mid X)
@@ -181,7 +181,7 @@ Multiplying eq. (2) by $\sqrt{T_i}$ gives the transformed between equation:
 $$
 \sqrt{T_i}\,\bar y_{i.}
 =
-\sqrt{T_i}\,\alpha
+\sqrt{T_i}\,\alpha_i
 + \beta\,\sqrt{T_i}\,\bar x_{i.}
 + \sqrt{T_i}\,\bar u_{i.}\,.
 \tag{3}
