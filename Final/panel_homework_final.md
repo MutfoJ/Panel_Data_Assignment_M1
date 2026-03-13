@@ -150,7 +150,7 @@ From the between equation, we have the averaged error term
 
 $$\overline{u}_{i.} = \frac{1}{T_{i}} \sum_{t\in P_{i}} u_{it}$$
 
-Since we assume that $(u_{it}|X) \sim IID(0, \sigma^2)$, the conditional variance becomes,
+Since we assume that $(u_{it}\mid X) \sim IID(0, \sigma^2)$, the conditional variance becomes,
 
 $$\text{Var}(\overline{u}_{i.}\mid X) = \text{Var}\left( \frac{1}{T_{i}} \sum_{t\in P_{i}} u_{it} \bigg| X \right) = \frac{1}{T_{i}^2} \sum_{t\in P_{i}} \text{Var}(u_{it}\mid X)$$
 
@@ -176,32 +176,32 @@ which is now homoskedastic again.
 
 We minimize the Sum of Squared Residuals in the new equation with respect to $\alpha$ and $\beta$
 
-$$\min_{\alpha, \beta} \sum_{i=1}^{N} (\bar{y}_{i.} - \alpha - \beta \bar{x}_{i.})^2$$
+$$\min_{\alpha, \beta} \sum_{i=1}^{N} (\overline{y}_{i.} - \alpha - \beta \overline{x}_{i.})^2$$
 
 **Part 1**. Deriving the between estimator $\hat{\alpha}_{B1}$
 
 Taking the partial derivative with respect to $\alpha$, set it to zero and rearrange the terms,
 
-$$\frac{\partial SSR}{\partial \alpha} = -2 \sum_{i=1}^{N} (\bar{y}_{i.} - \alpha - \beta \bar{x}_{i.}) = 0$$
+$$\frac{\partial SSR}{\partial \alpha} = -2 \sum_{i=1}^{N} (\overline{y}_{i.} - \alpha - \beta \overline{x}_{i.}) = 0$$
 
-$$\sum_{i=1}^{N} \bar{y}_{i.} - \sum_{i=1}^{N} \alpha - \beta \sum_{i=1}^{N} \bar{x}_{i.} = 0$$
+$$\sum_{i=1}^{N} \overline{y}_{i.} - \sum_{i=1}^{N} \alpha - \beta \sum_{i=1}^{N} \overline{x}_{i.} = 0$$
 
 
 Dividing the whole equation by $N$ gives
 
-$$\frac{1}{N}\sum_{i=1}^{N} \bar{y}_{i.} - \alpha - \beta \frac{1}{N}\sum_{i=1}^{N} \bar{x}_{i.} = 0$$
+$$\frac{1}{N}\sum_{i=1}^{N} \overline{y}_{i.} - \alpha - \beta \frac{1}{N}\sum_{i=1}^{N} \overline{x}_{i.} = 0$$
 
-So we have, 
+Using double-overline notation for the unweighted grand means, we have,
 
-$$\hat{\alpha}_{B1} = \bar{\bar{y}} - \hat{\beta}_{B1} \bar{\bar{x}}$$
+$$\hat{\alpha}_{B1} = \overline{\overline{y}} - \hat{\beta}_{B1} \overline{\overline{x}}$$
 
 **Part 2**. Deriving the between estimator $\hat{\beta}_{B1}$
 
 Taking the partial derivative with respect to $\beta$, setting it to zero and rearranging the terms, and using the result from the previous part, we have,
 
-$$\frac{\partial SSR}{\partial \beta} = -2 \sum_{i=1}^{N} \bar{x}_{i.} (\bar{y}_{i.} - \alpha - \beta \bar{x}_{i.}) = 0$$
+$$\frac{\partial SSR}{\partial \beta} = -2 \sum_{i=1}^{N} \overline{x}_{i.} (\overline{y}_{i.} - \alpha - \beta \overline{x}_{i.}) = 0$$
 
-$$\sum_{i=1}^{N} \bar{x}_{i.} [(\bar{y}_{i.} - \bar{\bar{y}}) - \beta (\bar{x}_{i.} - \bar{\bar{x}})] = 0$$
+$$\sum_{i=1}^{N} \overline{x}_{i.} [(\overline{y}_{i.} - \overline{\overline{y}}) - \beta (\overline{x}_{i.} - \overline{\overline{x}})] = 0$$
 
 $$\sum_{i=1}^{N} (\overline{x}_{i.} - \overline{\overline{x}}) \left[ (\overline{y}_{i.} - \overline{\overline{y}}) - \beta (\overline{x}_{i.} - \overline{\overline{x}}) \right] = 0$$
 
@@ -215,11 +215,11 @@ $$\hat{\beta}_{B1} = \frac{\sum_{i=1}^{N} (\overline{x}_{i.} - \overline{\overli
 
 The procedure is nearly the same, with our new objective function becoming,
 
-$$\min_{\alpha, \beta} \sum_{i=1}^{N} (\sqrt{T_i}\bar{y}_{i.} - \sqrt{T_i}\alpha - \beta \sqrt{T_i}\bar{x}_{i.})^2$$
+$$\min_{\alpha, \beta} \sum_{i=1}^{N} (\sqrt{T_i}\overline{y}_{i.} - \sqrt{T_i}\alpha - \beta \sqrt{T_i}\overline{x}_{i.})^2$$
 
 Or equivalently, 
 
-$$\min_{\alpha, \beta} \sum_{i=1}^{N} T_i(\bar{y}_{i.} - \alpha - \beta \bar{x}_{i.})^2$$
+$$\min_{\alpha, \beta} \sum_{i=1}^{N} T_i(\overline{y}_{i.} - \alpha - \beta \overline{x}_{i.})^2$$
 
 **Part 1**. Deriving the between estimator $\hat{\alpha}_{B2}$
 
@@ -233,7 +233,7 @@ Now instead of dividing it by $N$, we divide it by $\sum_{i=1}^{N} T_i$ to get t
 
 $$\frac{\sum T_i \overline{y}_{i.}}{\sum T_i} - \alpha - \beta \frac{\sum T_i \overline{x}_{i.}}{\sum T_i} = 0$$
 
-Using the notation for global mean, we have,
+Using single-overline notation for the weighted global means, we have,
 
 $$\hat{\alpha}_{B2} = \overline{y} - \hat{\beta}_{B2} \overline{x}$$
 
